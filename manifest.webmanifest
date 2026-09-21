@@ -1,0 +1,16 @@
+{
+  "name": "Dienstlijst maker OK AZ Vesalius",
+  "short_name": "Rooster D4",
+  "description": "Maandrooster, dekking en uren voor het OK-team (D4) — alle gegevens blijven in deze browser.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121613",
+  "theme_color": "#2F6F62",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
