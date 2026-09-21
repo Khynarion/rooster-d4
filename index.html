@@ -427,6 +427,7 @@
   .cov-ok{color:var(--good); font-weight:600; font-family:var(--font-mono);}
   .cov-short{color:var(--critical); font-weight:700; font-family:var(--font-mono); background:var(--critical-soft); border-radius:4px;}
   .cov-na{color:var(--ink-faint); font-family:var(--font-mono);}
+  .cov-soft{color:var(--warn); font-weight:700; font-family:var(--font-mono); cursor:help;}
   .row-total{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 
   details.legend{border:1px solid var(--line); border-radius:10px; padding:2px 14px; background:var(--surface-2);}
@@ -900,6 +901,7 @@
 
           <h3>Dekking per dag</h3>
           <p class="hint">Toegewezen versus vereist per dienst. Rood = tekort of een dubbele toewijzing waar maar 1 persoon hoort; met "Toon enkel rijen met een probleem" filter je de rest weg. <strong>Weekend, feestdag of een dag zonder geplande chirurg</strong> krijgen dezelfde lichtgrijze kleur en het weekendregime: 1 AT, 1 B en 1 W*, geen D/DT/TZ/DR/TR nodig. De officiële Vlaamse feestdagen (Nieuwjaar, Paasmaandag, 1 mei, Hemelvaart, Pinkstermaandag, 21 juli, 15 augustus, Allerheiligen, 11 november, Kerstmis) staan vast in de tool en zijn met een "F" gemarkeerd; een feestdag blijft altijd een dag zonder activiteit, ook als het weekschema er een chirurg zet. Wie in de personeelslijst "Geen dekking" heeft, telt nooit mee (behalve met het vinkje hierboven).</p>
+          <p class="hint"><strong>Rijen "Specialisme: …"</strong>: elke bemande zaal heeft per specialisme van haar chirurg(en) één gespecialiseerde persoon nodig (voormiddag Gynaecologie + namiddag Orthopedie in dezelfde zaal = 2 personen; 2 gynaecologen in dezelfde zaal = 1 persoon), en <em>één persoon kan maar één zaal dekken</em>, ook al beheerst die meerdere specialismen. De tool zoekt zelf de beste verdeling. Enkel de diensten D, DT, DTW, AT en ATW tellen mee; B en BW ook, maar pas als een dagdienst niet volstaat. Het teken toont het resultaat, met de volledige verdeling ("Zaal 2 → Peggy") in de infobulle bij het aanwijzen: <strong>✓ groen</strong> = elke zaal gedekt met het exacte specialisme; <strong>✓ oranje</strong> = gedekt, maar (deels) met een ander specialisme uit dezelfde groep (bv. "Orthopedie Heup" voor "Orthopedie Knie" — niet ideaal); <strong>! rood</strong> = minstens één zaal zonder specialist (de infobulle zegt ook wie wel geschikt was maar al elders nodig is). Vul daarom de specifieke specialismen (bv. "Orthopedie Knie") correct in bij het personeel in tab 5.</p>
 
           <h3>Wensen deze maand</h3>
           <p class="hint">Een <strong>wens</strong> (gewenste dienst, verlofaanvraag, AV-dag, …) noteer je in dit paneel: kies de persoon, de dag en de gewenste code en klik op "+ Wens toevoegen" — de code komt meteen in het rooster en de cel wordt geel. Voor een <strong>periode</strong> (bv. verlof van 9 t/m 12 november) kies je bij "Tot en met" ook de laatste dag: alle dagen ertussen krijgen dan in één keer die code. Weekenddagen en feestdagen binnen zo'n periode worden overgeslagen (die houden hun eigen rustdag- of feestdagcode); de tool meldt hoeveel dagen er zijn overgeslagen. Vraagt iemand <strong>meerdere wensen</strong>? Open "Meerdere wensen voor één persoon", kies de persoon één keer en vul per rij een dag (of een periode) en een code in (een nieuwe rij neemt de code van de vorige over). Staat er al een andere code op een gekozen dag, dan vraagt de tool eerst of je die wil vervangen. Klik op "Verwerkt" zodra een wens definitief bevestigd is: de wens telt dan niet meer als openstaand, maar <strong>de cel blijft geel</strong> als visuele herinnering dat het een wens was, en de code blijft staan. Een verwerkte wens blijft in de lijst staan (met ✓) en kan je daar "Heropenen" of via "Markering wissen" alsnog van zijn gele kleur ontdoen.</p>
@@ -2526,6 +2528,156 @@
     return { status: "warn", text: "Onvolledig: AT/B/C3 en W* moeten elk exact 1 cluster hebben" };
   }
 
+  // ---------- SPECIALISMEN PER ZAAL: wie dekt welke zaal? ----------
+  // Elke bemande zaal heeft per specialisme van haar chirurg(en) één gespecialiseerde persoon nodig
+  // (VM: Gynaecologie + NM: Orthopedie = 2 personen; 2 gynaecologen in dezelfde zaal = 1 persoon), en
+  // één persoon kan maar in ÉÉN zaal staan — ook al beheerst die meerdere specialismen. Daarom wordt
+  // hier een verdeling gezocht (toewijzingsprobleem) die zoveel mogelijk zalen dekt: eerst het meeste
+  // aantal gedekte zalen, dan de meeste exacte specialismen, dan dagdiensten vóór B/BW.
+  // Een ander specialisme uit dezelfde familie (eerste woord, bv. "Orthopedie Heup" voor "Orthopedie
+  // Knie") mag als noodoplossing, maar telt als "niet ideaal".
+  var SPECIALTY_DAY_CODES = ["D", "DT", "DTW", "AT", "ATW"];
+  var SPECIALTY_EVENING_CODES = ["B", "BW"]; // vallen pas in als dagdienst niet volstaat (lagere prioriteit)
+  var COST_FALLBACK = 10, COST_EVENING = 1, COST_UNMATCHED = 5000, COST_FORBIDDEN = 100000;
+
+  function specialtyFamily(key){ return key.split(" ")[0]; }
+
+  // Hongaarse methode voor een kostenmatrix met n rijen ≤ m kolommen; geeft per rij de gekozen kolom.
+  function hungarianMin(cost){
+    var n = cost.length, m = cost[0].length, INF = 1e15, i, j;
+    var u = [], v = [], p = [], way = [];
+    for(j = 0; j <= m; j++){ v.push(0); p.push(0); way.push(0); }
+    for(i = 0; i <= n; i++) u.push(0);
+    for(i = 1; i <= n; i++){
+      p[0] = i;
+      var j0 = 0, minv = [], used = [];
+      for(j = 0; j <= m; j++){ minv.push(INF); used.push(false); }
+      do{
+        used[j0] = true;
+        var i0 = p[j0], delta = INF, j1 = 0;
+        for(j = 1; j <= m; j++){
+          if(used[j]) continue;
+          var cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+          if(cur < minv[j]){ minv[j] = cur; way[j] = j0; }
+          if(minv[j] < delta){ delta = minv[j]; j1 = j; }
+        }
+        for(j = 0; j <= m; j++){
+          if(used[j]){ u[p[j]] += delta; v[j] -= delta; } else { minv[j] -= delta; }
+        }
+        j0 = j1;
+      } while(p[j0] !== 0);
+      do{ var jPrev = way[j0]; p[j0] = p[jPrev]; j0 = jPrev; } while(j0);
+    }
+    var result = [];
+    for(i = 0; i < n; i++) result.push(-1);
+    for(j = 1; j <= m; j++){ if(p[j]) result[p[j] - 1] = j - 1; }
+    return result;
+  }
+
+  function specialtySlotsForDay(date){
+    var assign = roomAssignmentsForDay(date), slots = [];
+    getOrderedRooms().forEach(function(rm){
+      var surgeons = [surgeonById(assign[rm.id]), surgeonById(pmSurgeonForRoomDay(rm.id, date))].filter(Boolean);
+      var byKey = {}, order = [];
+      surgeons.forEach(function(s){
+        (s.specialisme || "").split(",").forEach(function(x){
+          x = x.trim();
+          if(!x) return;
+          var spec = canonicalSpecialty(x), key = specialtyKey(spec);
+          if(!byKey[key]){ byKey[key] = { spec: spec, key: key, room: rm, surgeons: [] }; order.push(key); }
+          if(byKey[key].surgeons.indexOf(s.naam) === -1) byKey[key].surgeons.push(s.naam);
+        });
+      });
+      order.forEach(function(k){ slots.push(byKey[k]); });
+    });
+    return slots;
+  }
+
+  function specialtyCandidatesForDay(date){
+    var list = [];
+    state.refList.forEach(function(r){
+      var norm = normalizeName(r.nom);
+      if(!countsForCoverageToday(r, norm, date)) return;
+      var parts = codeParts(getCode(norm, date));
+      var day = parts.some(function(c){ return SPECIALTY_DAY_CODES.indexOf(c) !== -1; });
+      var evening = !day && parts.some(function(c){ return SPECIALTY_EVENING_CODES.indexOf(c) !== -1; });
+      if(!day && !evening) return;
+      var keys = (r.specialiteiten || "").split(",").map(specialtyKey).filter(Boolean);
+      if(!keys.length) return;
+      list.push({ nom: r.nom, keys: keys, families: keys.map(specialtyFamily), evening: evening });
+    });
+    return list;
+  }
+
+  function slotCostForPerson(slot, person){
+    var base;
+    if(person.keys.indexOf(slot.key) !== -1) base = 0;
+    else if(person.families.indexOf(specialtyFamily(slot.key)) !== -1) base = COST_FALLBACK;
+    else return null; // niet geschikt voor deze zaal
+    return base + (person.evening ? COST_EVENING : 0);
+  }
+
+  // Geeft per specialisme (op specialtyKey) de lijst van slots met hun toegewezen persoon.
+  function specialtyPlanForDay(date){
+    var slots = specialtySlotsForDay(date), plan = {};
+    if(!slots.length) return plan;
+    var people = specialtyCandidatesForDay(date);
+    var cost = slots.map(function(slot){
+      var row = people.map(function(p){
+        var c = slotCostForPerson(slot, p);
+        return c === null ? COST_FORBIDDEN : c;
+      });
+      for(var k = 0; k < slots.length; k++) row.push(COST_UNMATCHED); // "niemand" is altijd mogelijk, maar duur
+      return row;
+    });
+    var pick = hungarianMin(cost), takenBy = {};
+    slots.forEach(function(slot, i){
+      var col = pick[i], person = null, exact = false;
+      if(col >= 0 && col < people.length && cost[i][col] < COST_FORBIDDEN){
+        person = people[col];
+        exact = person.keys.indexOf(slot.key) !== -1;
+        takenBy[col] = slot;
+      }
+      (plan[slot.key] = plan[slot.key] || []).push({ slot: slot, person: person, exact: exact, col: col });
+    });
+    // Voor een onbedekte zaal: wie zou het wél kunnen, maar staat al elders ingezet? (uitleg in de infobulle)
+    Object.keys(plan).forEach(function(key){
+      plan[key].forEach(function(entry){
+        if(entry.person) return;
+        entry.busy = [];
+        people.forEach(function(p, idx){
+          if(slotCostForPerson(entry.slot, p) === null) return;
+          var other = takenBy[idx];
+          if(other) entry.busy.push(p.nom + " (al ingezet in " + (other.room.naam || "een andere zaal") + ", " + other.spec + ")");
+        });
+      });
+    });
+    return plan;
+  }
+
+  function specialtyCoverageForRow(spec, plan){
+    var entries = plan[specialtyKey(spec)];
+    if(!entries || !entries.length){
+      return { status: "na", text: "Geen " + spec + "-chirurgie gepland deze dag" };
+    }
+    var lines = [], uncovered = 0, fallback = 0;
+    entries.forEach(function(e){
+      var who = (e.slot.room.naam || "Zaal") + " (" + e.slot.surgeons.join(" + ") + ")";
+      if(!e.person){
+        uncovered++;
+        lines.push(who + " → niemand beschikbaar" + (e.busy && e.busy.length ? " — wel geschikt maar al elders nodig: " + e.busy.join(", ") : ""));
+      } else if(!e.exact){
+        fallback++;
+        lines.push(who + " → " + e.person.nom + " (geen " + spec + ", wel een ander specialisme uit dezelfde groep — niet ideaal)");
+      } else {
+        lines.push(who + " → " + e.person.nom);
+      }
+    });
+    var status = uncovered ? "warn" : (fallback ? "soft" : "ok");
+    var head = entries.length + " zaal" + (entries.length === 1 ? "" : "en") + " met " + spec + " — " + (uncovered ? uncovered + " zonder specialist" : (fallback ? "gedekt, maar niet overal met het exacte specialisme" : "allemaal gedekt")) + ":\n";
+    return { status: status, text: head + lines.join("\n") };
+  }
+
   function buildCoverageRows(date){
     var weekend = isRestRegimeDay(date); // weekend, feestdag of dag zonder geplande chirurg
     var rooms = totalRoomsForDay(date);
@@ -2562,24 +2714,9 @@
       rows.push({ label: "DT — " + cluster, required: weekend ? null : (2 * (needs[cluster] || 0)), actual: countCodeForDay(date, "DT", cluster) + countCodeForDay(date, "DTW", cluster) });
     });
     rows.push({ label: "DT totaal (incl. 1 extra Ontwaakzaal)", required: weekend ? null : (2 * rooms + 1), actual: countCodeForDay(date, "DT") + countCodeForDay(date, "DTW") });
-    var neededToday = neededSpecialtiesForDay(date);
+    var specialtyPlan = specialtyPlanForDay(date);
     getSpecialties().forEach(function(spec){
-      var flagged = neededToday.indexOf(spec) !== -1;
-      var custom;
-      if(!flagged){
-        custom = { status: "na", text: "Geen " + spec + "-chirurgie gepland deze dag" };
-      } else {
-        var present = state.refList.some(function(r){
-          var norm = normalizeName(r.nom);
-          if(!countsForCoverageToday(r, norm, date)) return false;
-          if(!personHasSpecialty(r, spec)) return false;
-          return isWorkingCode(getCode(norm, date));
-        });
-        custom = present
-          ? { status: "ok", text: "Iemand met specialiteit " + spec + " is ingepland" }
-          : { status: "warn", text: "Niemand met specialiteit " + spec + " is ingepland, terwijl dat vandaag gepland staat" };
-      }
-      rows.push({ label: "Specialisme: " + spec, custom: custom });
+      rows.push({ label: "Specialisme: " + spec, custom: specialtyCoverageForRow(spec, specialtyPlan) });
     });
     rows.push({ label: "Weekendwissel (AT/B/C3 ↔ W*)", custom: weekend ? weekendClusterCheck(date) : null });
     return rows;
@@ -2614,6 +2751,8 @@
             html += '<td class="' + weekendCls.trim() + '"><span class="cov-na" title="' + escapeHtml(r.custom ? r.custom.text : "") + '">—</span></td>';
           } else if(r.custom.status === "ok"){
             html += '<td class="' + weekendCls.trim() + '"><span class="cov-ok" title="' + escapeHtml(r.custom.text) + '">✓</span></td>';
+          } else if(r.custom.status === "soft"){
+            html += '<td class="' + weekendCls.trim() + '"><span class="cov-soft" title="' + escapeHtml(r.custom.text) + '">✓</span></td>';
           } else {
             html += '<td class="' + weekendCls.trim() + '"><span class="cov-short" title="' + escapeHtml(r.custom.text) + '">!</span></td>';
           }
