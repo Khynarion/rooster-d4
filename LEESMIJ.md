@@ -33,6 +33,12 @@ Elk adres heeft zijn eigen opslag: de installeerbare versie start dus leeg. Zet 
 **Team & clusters → Instellingen overzetten**: vink in de oude versie "Volledige back-up" aan, exporteer, kopieer de
 tekst, en plak ze in de nieuwe versie bij "Instellingen importeren".
 
+## Geen internet toegelaten? De USB-/offline-versie
+
+Is het web geblokkeerd (bv. door een IT-dienst)? Gebruik dan `usb\Rooster-D4-USB.html` — één bestand
+zonder enige internetverbinding, te openen vanaf een USB-stick, netwerkschijf of gewoon een map op de
+pc. Zie `usb\LEESMIJ-USB.md`. Bouwen/bijwerken: `powershell -ExecutionPolicy Bypass -File .\bouw-usb.ps1`.
+
 ## Bijwerken na een wijziging
 
 1. Vervang `bron/equite-d4.html` door de nieuwe versie.
