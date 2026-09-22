@@ -906,7 +906,8 @@
 
           <h3>Dekking per dag</h3>
           <p class="hint">Toegewezen versus vereist per dienst. Rood = tekort of een dubbele toewijzing waar maar 1 persoon hoort; met "Toon enkel rijen met een probleem" filter je de rest weg. <strong>Weekend, feestdag of een dag zonder geplande chirurg</strong> krijgen dezelfde lichtgrijze kleur en het weekendregime: 1 AT, 1 B en 1 W*, geen D/DT/TZ/DR/TR nodig. De officiële Vlaamse feestdagen (Nieuwjaar, Paasmaandag, 1 mei, Hemelvaart, Pinkstermaandag, 21 juli, 15 augustus, Allerheiligen, 11 november, Kerstmis) staan vast in de tool en zijn met een "F" gemarkeerd; een feestdag blijft altijd een dag zonder activiteit, ook als het weekschema er een chirurg zet. Wie in de personeelslijst "Geen dekking" heeft, telt nooit mee (behalve met het vinkje hierboven).</p>
-          <p class="hint"><strong>Rijen "Specialisme: …"</strong>: elke bemande zaal heeft per specialisme van haar chirurg(en) één gespecialiseerde persoon nodig (voormiddag Gynaecologie + namiddag Orthopedie in dezelfde zaal = 2 personen; 2 gynaecologen in dezelfde zaal = 1 persoon), en <em>één persoon kan maar één zaal dekken</em>, ook al beheerst die meerdere specialismen. De tool zoekt zelf de beste verdeling. Enkel de diensten D, DT, DTW, AT en ATW tellen mee; B en BW ook, maar pas als een dagdienst niet volstaat. Het teken toont het resultaat; hover, tik of blader er met Tab naartoe voor een kaartje met de volledige verdeling ("Zaal 2 → Peggy") per zaal: <strong>✓ groen</strong> = elke zaal gedekt met het exacte specialisme; <strong>✓ oranje</strong> = gedekt, maar (deels) met een ander specialisme uit dezelfde groep (bv. "Orthopedie Heup" voor "Orthopedie Knie" — niet ideaal); <strong>! rood</strong> = minstens één zaal zonder specialist (het kaartje zegt ook wie wel geschikt was maar al elders nodig is). Vul daarom de specifieke specialismen (bv. "Orthopedie Knie") correct in bij het personeel in tab 5.</p>
+          <p class="hint"><strong>Rijen "Specialisme: …"</strong>: elke zaal draait met 2 verpleegkundigen, en idealiter zijn <em>allebei</em> van dezelfde discipline als de chirurg — een zaal met maar 1 gespecialiseerde persoon telt dus niet als volledig gedekt, want de 2e komt dan uit een ander cluster en assisteert de specialist eigenlijk niet. Per specialisme van de chirurg(en) van een zaal zoekt de tool dus 2 personen (voormiddag Gynaecologie + namiddag Orthopedie in dezelfde zaal = 2 personen per specialisme = 4 in totaal; 2 gynaecologen in dezelfde zaal = 2 personen Gynaecologie), en <em>één persoon kan maar één zaal dekken</em>, ook al beheerst die meerdere specialismen. De tool zoekt zelf de beste verdeling over alle zalen samen. Enkel de diensten D, DT, DTW, AT en ATW tellen mee; B en BW ook, maar pas als een dagdienst niet volstaat.</p>
+          <p class="hint">Het teken toont het resultaat; hover, tik of blader er met Tab naartoe voor een kaartje met de volledige verdeling ("Zaal 2 → Peggy + Jan") per zaal: <strong>✓ groen</strong> = elke zaal heeft 2 personen met het exacte specialisme; <strong>✓ oranje</strong> = elke zaal heeft 2 personen, maar niet overal allebei het exacte specialisme (1 exact + 1 uit dezelfde groep, bv. "Orthopedie Heup" naast "Orthopedie Knie", wordt aanvaard als correcte 2e keuze); <strong>! rood</strong> = minstens één zaal heeft nog geen 2 gespecialiseerde personen (het kaartje zegt ook wie wel geschikt was maar al elders nodig is). Dit blijft een haalbaarheidscheck op basis van wie er vandaag werkt en welke specialismen ze opgaven — de tool weet niet welke 2 specifieke personen fysiek in welke zaal staan, enkel of er in principe genoeg gespecialiseerd volk beschikbaar is. Vul daarom de specifieke specialismen (bv. "Orthopedie Knie") correct in bij het personeel in tab 5.</p>
 
           <h3>Wensen deze maand</h3>
           <p class="hint">Een <strong>wens</strong> (gewenste dienst, verlofaanvraag, AV-dag, …) noteer je in dit paneel: kies de persoon, de dag en de gewenste code en klik op "+ Wens toevoegen" — de code komt meteen in het rooster en de cel wordt geel. Voor een <strong>periode</strong> (bv. verlof van 9 t/m 12 november) kies je bij "Tot en met" ook de laatste dag: alle dagen ertussen krijgen dan in één keer die code. Weekenddagen en feestdagen binnen zo'n periode worden overgeslagen (die houden hun eigen rustdag- of feestdagcode); de tool meldt hoeveel dagen er zijn overgeslagen. Vraagt iemand <strong>meerdere wensen</strong>? Open "Meerdere wensen voor één persoon", kies de persoon één keer en vul per rij een dag (of een periode) en een code in (een nieuwe rij neemt de code van de vorige over). Staat er al een andere code op een gekozen dag, dan vraagt de tool eerst of je die wil vervangen. Klik op "Verwerkt" zodra een wens definitief bevestigd is: de wens telt dan niet meer als openstaand, maar <strong>de cel blijft geel</strong> als visuele herinnering dat het een wens was, en de code blijft staan. Een verwerkte wens blijft in de lijst staan (met ✓) en kan je daar "Heropenen" of via "Markering wissen" alsnog van zijn gele kleur ontdoen.</p>
@@ -2622,40 +2623,54 @@
     return base + (person.evening ? COST_EVENING : 0);
   }
 
-  // Geeft per specialisme (op specialtyKey) de lijst van slots met hun toegewezen persoon.
+  // Elke zaal draait met 2 verpleegkundigen, idealiter allebei van dezelfde discipline als de
+  // chirurg — een zaal met maar 1 gespecialiseerde persoon (de 2e komt dan uit een ander cluster en
+  // assisteert de specialist niet echt) is dus GEEN volledige dekking. Daarom 2 "zetels" per
+  // zaal/specialisme in het toewijzingsprobleem i.p.v. 1. 1 exact + 1 uit dezelfde familie (bv. Heup
+  // naast Knie) is aanvaard als correcte 2e keuze; 2x exact blijft het beste geval.
+  var SEATS_PER_ROOM = 2;
+
+  // Geeft per specialisme (op specialtyKey) de lijst van zalen met hun toegewezen personen (max. 2).
   function specialtyPlanForDay(date){
     var slots = specialtySlotsForDay(date), plan = {};
     if(!slots.length) return plan;
     var people = specialtyCandidatesForDay(date);
-    var cost = slots.map(function(slot){
+    var seats = []; // elke zaal/specialisme komt SEATS_PER_ROOM keer voor
+    slots.forEach(function(slot){ for(var s = 0; s < SEATS_PER_ROOM; s++) seats.push(slot); });
+    var cost = seats.map(function(slot){
       var row = people.map(function(p){
         var c = slotCostForPerson(slot, p);
         return c === null ? COST_FORBIDDEN : c;
       });
-      for(var k = 0; k < slots.length; k++) row.push(COST_UNMATCHED); // "niemand" is altijd mogelijk, maar duur
+      for(var k = 0; k < seats.length; k++) row.push(COST_UNMATCHED); // "niemand" is altijd mogelijk, maar duur
       return row;
     });
     var pick = hungarianMin(cost), takenBy = {};
-    slots.forEach(function(slot, i){
+    var bySlot = new Map();
+    slots.forEach(function(slot){ bySlot.set(slot, []); });
+    seats.forEach(function(slot, i){
       var col = pick[i], person = null, exact = false;
       if(col >= 0 && col < people.length && cost[i][col] < COST_FORBIDDEN){
         person = people[col];
         exact = person.keys.indexOf(slot.key) !== -1;
         takenBy[col] = slot;
       }
-      (plan[slot.key] = plan[slot.key] || []).push({ slot: slot, person: person, exact: exact, col: col });
+      bySlot.get(slot).push({ person: person, exact: exact });
     });
-    // Voor een onbedekte zaal: wie zou het wél kunnen, maar staat al elders ingezet? (uitleg in de infobulle)
-    Object.keys(plan).forEach(function(key){
-      plan[key].forEach(function(entry){
-        if(entry.person) return;
-        entry.busy = [];
+    // Voor een zaal die nog geen 2 gevonden heeft: wie zou het wél kunnen, maar staat al elders
+    // ingezet? (uitleg in het infokaartje)
+    slots.forEach(function(slot){
+      var found = bySlot.get(slot).filter(function(a){ return a.person; });
+      var busy = [];
+      if(found.length < SEATS_PER_ROOM){
         people.forEach(function(p, idx){
-          if(slotCostForPerson(entry.slot, p) === null) return;
+          if(slotCostForPerson(slot, p) === null) return;
+          if(found.some(function(a){ return a.person === p; })) return; // zit hier zelf al
           var other = takenBy[idx];
-          if(other) entry.busy.push({ nom: p.nom, room: other.room.naam || "een andere zaal" });
+          if(other) busy.push({ nom: p.nom, room: other.room.naam || "een andere zaal" });
         });
-      });
+      }
+      (plan[slot.key] = plan[slot.key] || []).push({ slot: slot, persons: found, busy: busy });
     });
     return plan;
   }
@@ -2669,26 +2684,29 @@
     if(!entries || !entries.length){
       return { status: "na", text: "Geen " + spec + "-chirurgie gepland deze dag" };
     }
-    var lines = [], uncovered = 0, fallback = 0;
+    var lines = [], short = 0, fallback = 0;
     entries.forEach(function(e){
       var room = e.slot.room.naam || "Zaal";
-      if(!e.person){
-        uncovered++;
+      var n = e.persons.length;
+      if(n < SEATS_PER_ROOM){
+        short++;
+        var who = n ? e.persons.map(function(a){ return a.person.nom; }).join(" + ") + " (" + n + " van " + SEATS_PER_ROOM + ")" : "niemand vrij (0 van " + SEATS_PER_ROOM + ")";
         lines.push({
-          status: "short", main: room + " → niemand vrij",
-          note: (e.busy && e.busy.length) ? "Kan wel: " + e.busy.map(function(b){ return b.nom + " (bezig in " + b.room + ")"; }).join(", ") : null
+          status: "short", main: room + " → " + who,
+          note: (e.busy && e.busy.length) ? "Kan er nog bij: " + e.busy.map(function(b){ return b.nom + " (bezig in " + b.room + ")"; }).join(", ") : "geen 2e gespecialiseerde persoon beschikbaar"
         });
-      } else if(!e.exact){
+      } else if(e.persons.some(function(a){ return !a.exact; })){
         fallback++;
-        lines.push({ status: "soft", main: room + " → " + e.person.nom, note: "geen " + spec + " — ander specialisme uit dezelfde groep" });
+        var names = e.persons.map(function(a){ return a.person.nom + (a.exact ? "" : " (repli)"); }).join(" + ");
+        lines.push({ status: "soft", main: room + " → " + names, note: "niet allebei " + spec + " — 1 ervan is een ander specialisme uit dezelfde groep" });
       } else {
-        lines.push({ status: "ok", main: room + " → " + e.person.nom, note: null });
+        lines.push({ status: "ok", main: room + " → " + e.persons.map(function(a){ return a.person.nom; }).join(" + "), note: null });
       }
     });
-    var status = uncovered ? "warn" : (fallback ? "soft" : "ok");
-    var summary = uncovered
-      ? uncovered + " van " + pluralNL(entries.length, "zaal", "zalen") + " zonder specialist"
-      : (fallback ? "gedekt, met een repli" : "alle zalen gedekt");
+    var status = short ? "warn" : (fallback ? "soft" : "ok");
+    var summary = short
+      ? short + " van " + pluralNL(entries.length, "zaal", "zalen") + " met minder dan " + SEATS_PER_ROOM + " gespecialiseerde personen"
+      : (fallback ? "overal 2 personen, maar niet overal allebei " + spec : "overal 2 gespecialiseerde personen");
     return {
       status: status,
       text: spec + ": " + summary, // korte tekst voor aria-label en als terugvalpositie
