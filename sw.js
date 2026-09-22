@@ -1,7 +1,7 @@
 /* Service worker van Rooster D4 — zorgt dat de tool ook zonder internet opent.
    Gegenereerd door bouw.ps1: de regel met VERSIE wordt bij elke bouw vervangen, zodat een nieuwe
    versie van de tool de oude cache automatisch opruimt. */
-const VERSIE = "rooster-d4-20260921-215100";
+const VERSIE = "rooster-d4-20260922-212619";
 const KERN = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
 
 self.addEventListener("install", function(e){

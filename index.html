@@ -428,6 +428,23 @@
   .cov-short{color:var(--critical); font-weight:700; font-family:var(--font-mono); background:var(--critical-soft); border-radius:4px;}
   .cov-na{color:var(--ink-faint); font-family:var(--font-mono);}
   .cov-soft{color:var(--warn); font-weight:700; font-family:var(--font-mono); cursor:help;}
+  .has-tip{cursor:help;}
+  .has-tip:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px;}
+  /* Klein, gestileerd kaartje i.p.v. de effen browser-tooltip — zie de "SMART-TIP"-code verderop.
+     position:fixed + JS-positionering (i.p.v. CSS :hover) omdat de dekkingstabel in een scrollbare,
+     overflow:auto-doos zit: een tooltip die binnen die doos zou moeten blijven, wordt afgesneden. */
+  .smart-tip{
+    position:fixed; z-index:80; max-width:300px; background:var(--surface); color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow);
+    padding:10px 12px; font-size:0.82rem; line-height:1.4; pointer-events:none;
+  }
+  .smart-tip-title{font-weight:700; margin-bottom:2px;}
+  .smart-tip-summary{color:var(--ink-soft); font-size:0.78rem; margin-bottom:8px;}
+  .smart-tip-lines{display:flex; flex-direction:column; gap:7px;}
+  .smart-tip-line{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
+  .smart-tip-line > .cov-ok, .smart-tip-line > .cov-soft, .smart-tip-line > .cov-short{flex:none;}
+  .smart-tip-main{font-weight:600;}
+  .smart-tip-note{color:var(--ink-faint); font-size:0.76rem; width:100%; padding-left:19px;}
   .row-total{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
 
   details.legend{border:1px solid var(--line); border-radius:10px; padding:2px 14px; background:var(--surface-2);}
@@ -901,7 +918,7 @@
 
           <h3>Dekking per dag</h3>
           <p class="hint">Toegewezen versus vereist per dienst. Rood = tekort of een dubbele toewijzing waar maar 1 persoon hoort; met "Toon enkel rijen met een probleem" filter je de rest weg. <strong>Weekend, feestdag of een dag zonder geplande chirurg</strong> krijgen dezelfde lichtgrijze kleur en het weekendregime: 1 AT, 1 B en 1 W*, geen D/DT/TZ/DR/TR nodig. De officiële Vlaamse feestdagen (Nieuwjaar, Paasmaandag, 1 mei, Hemelvaart, Pinkstermaandag, 21 juli, 15 augustus, Allerheiligen, 11 november, Kerstmis) staan vast in de tool en zijn met een "F" gemarkeerd; een feestdag blijft altijd een dag zonder activiteit, ook als het weekschema er een chirurg zet. Wie in de personeelslijst "Geen dekking" heeft, telt nooit mee (behalve met het vinkje hierboven).</p>
-          <p class="hint"><strong>Rijen "Specialisme: …"</strong>: elke bemande zaal heeft per specialisme van haar chirurg(en) één gespecialiseerde persoon nodig (voormiddag Gynaecologie + namiddag Orthopedie in dezelfde zaal = 2 personen; 2 gynaecologen in dezelfde zaal = 1 persoon), en <em>één persoon kan maar één zaal dekken</em>, ook al beheerst die meerdere specialismen. De tool zoekt zelf de beste verdeling. Enkel de diensten D, DT, DTW, AT en ATW tellen mee; B en BW ook, maar pas als een dagdienst niet volstaat. Het teken toont het resultaat, met de volledige verdeling ("Zaal 2 → Peggy") in de infobulle bij het aanwijzen: <strong>✓ groen</strong> = elke zaal gedekt met het exacte specialisme; <strong>✓ oranje</strong> = gedekt, maar (deels) met een ander specialisme uit dezelfde groep (bv. "Orthopedie Heup" voor "Orthopedie Knie" — niet ideaal); <strong>! rood</strong> = minstens één zaal zonder specialist (de infobulle zegt ook wie wel geschikt was maar al elders nodig is). Vul daarom de specifieke specialismen (bv. "Orthopedie Knie") correct in bij het personeel in tab 5.</p>
+          <p class="hint"><strong>Rijen "Specialisme: …"</strong>: elke bemande zaal heeft per specialisme van haar chirurg(en) één gespecialiseerde persoon nodig (voormiddag Gynaecologie + namiddag Orthopedie in dezelfde zaal = 2 personen; 2 gynaecologen in dezelfde zaal = 1 persoon), en <em>één persoon kan maar één zaal dekken</em>, ook al beheerst die meerdere specialismen. De tool zoekt zelf de beste verdeling. Enkel de diensten D, DT, DTW, AT en ATW tellen mee; B en BW ook, maar pas als een dagdienst niet volstaat. Het teken toont het resultaat; hover, tik of blader er met Tab naartoe voor een kaartje met de volledige verdeling ("Zaal 2 → Peggy") per zaal: <strong>✓ groen</strong> = elke zaal gedekt met het exacte specialisme; <strong>✓ oranje</strong> = gedekt, maar (deels) met een ander specialisme uit dezelfde groep (bv. "Orthopedie Heup" voor "Orthopedie Knie" — niet ideaal); <strong>! rood</strong> = minstens één zaal zonder specialist (het kaartje zegt ook wie wel geschikt was maar al elders nodig is). Vul daarom de specifieke specialismen (bv. "Orthopedie Knie") correct in bij het personeel in tab 5.</p>
 
           <h3>Wensen deze maand</h3>
           <p class="hint">Een <strong>wens</strong> (gewenste dienst, verlofaanvraag, AV-dag, …) noteer je in dit paneel: kies de persoon, de dag en de gewenste code en klik op "+ Wens toevoegen" — de code komt meteen in het rooster en de cel wordt geel. Voor een <strong>periode</strong> (bv. verlof van 9 t/m 12 november) kies je bij "Tot en met" ook de laatste dag: alle dagen ertussen krijgen dan in één keer die code. Weekenddagen en feestdagen binnen zo'n periode worden overgeslagen (die houden hun eigen rustdag- of feestdagcode); de tool meldt hoeveel dagen er zijn overgeslagen. Vraagt iemand <strong>meerdere wensen</strong>? Open "Meerdere wensen voor één persoon", kies de persoon één keer en vul per rij een dag (of een periode) en een code in (een nieuwe rij neemt de code van de vorige over). Staat er al een andere code op een gekozen dag, dan vraagt de tool eerst of je die wil vervangen. Klik op "Verwerkt" zodra een wens definitief bevestigd is: de wens telt dan niet meer als openstaand, maar <strong>de cel blijft geel</strong> als visuele herinnering dat het een wens was, en de code blijft staan. Een verwerkte wens blijft in de lijst staan (met ✓) en kan je daar "Heropenen" of via "Markering wissen" alsnog van zijn gele kleur ontdoen.</p>
@@ -2648,34 +2665,47 @@
         people.forEach(function(p, idx){
           if(slotCostForPerson(entry.slot, p) === null) return;
           var other = takenBy[idx];
-          if(other) entry.busy.push(p.nom + " (al ingezet in " + (other.room.naam || "een andere zaal") + ", " + other.spec + ")");
+          if(other) entry.busy.push({ nom: p.nom, room: other.room.naam || "een andere zaal" });
         });
       });
     });
     return plan;
   }
 
-  function specialtyCoverageForRow(spec, plan){
+  // Geeft naast de korte status ("ok"/"soft"/"warn") ook een STRUCTUUR terug (detail.lines) i.p.v.
+  // enkel platte tekst — die structuur wordt getoond in het eigen "smart-tip"-kaartje (zie verderop
+  // bij SMART-TIP), niet in de effen, onopgemaakte title-tooltip van de browser. Enkel deze functie
+  // (en weekendClusterCheck) leveren "custom" op; de rest van de dekkingsrijen blijft gewoon tekst.
+  function specialtyCoverageForRow(spec, plan, date){
     var entries = plan[specialtyKey(spec)];
     if(!entries || !entries.length){
       return { status: "na", text: "Geen " + spec + "-chirurgie gepland deze dag" };
     }
     var lines = [], uncovered = 0, fallback = 0;
     entries.forEach(function(e){
-      var who = (e.slot.room.naam || "Zaal") + " (" + e.slot.surgeons.join(" + ") + ")";
+      var room = e.slot.room.naam || "Zaal";
       if(!e.person){
         uncovered++;
-        lines.push(who + " → niemand beschikbaar" + (e.busy && e.busy.length ? " — wel geschikt maar al elders nodig: " + e.busy.join(", ") : ""));
+        lines.push({
+          status: "short", main: room + " → niemand vrij",
+          note: (e.busy && e.busy.length) ? "Kan wel: " + e.busy.map(function(b){ return b.nom + " (bezig in " + b.room + ")"; }).join(", ") : null
+        });
       } else if(!e.exact){
         fallback++;
-        lines.push(who + " → " + e.person.nom + " (geen " + spec + ", wel een ander specialisme uit dezelfde groep — niet ideaal)");
+        lines.push({ status: "soft", main: room + " → " + e.person.nom, note: "geen " + spec + " — ander specialisme uit dezelfde groep" });
       } else {
-        lines.push(who + " → " + e.person.nom);
+        lines.push({ status: "ok", main: room + " → " + e.person.nom, note: null });
       }
     });
     var status = uncovered ? "warn" : (fallback ? "soft" : "ok");
-    var head = entries.length + " zaal" + (entries.length === 1 ? "" : "en") + " met " + spec + " — " + (uncovered ? uncovered + " zonder specialist" : (fallback ? "gedekt, maar niet overal met het exacte specialisme" : "allemaal gedekt")) + ":\n";
-    return { status: status, text: head + lines.join("\n") };
+    var summary = uncovered
+      ? uncovered + " van " + pluralNL(entries.length, "zaal", "zalen") + " zonder specialist"
+      : (fallback ? "gedekt, met een repli" : "alle zalen gedekt");
+    return {
+      status: status,
+      text: spec + ": " + summary, // korte tekst voor aria-label en als terugvalpositie
+      detail: { title: spec + (date ? " — " + shortDateLabel(date) : ""), summary: summary, lines: lines }
+    };
   }
 
   function buildCoverageRows(date){
@@ -2716,7 +2746,7 @@
     rows.push({ label: "DT totaal (incl. 1 extra Ontwaakzaal)", required: weekend ? null : (2 * rooms + 1), actual: countCodeForDay(date, "DT") + countCodeForDay(date, "DTW") });
     var specialtyPlan = specialtyPlanForDay(date);
     getSpecialties().forEach(function(spec){
-      rows.push({ label: "Specialisme: " + spec, custom: specialtyCoverageForRow(spec, specialtyPlan) });
+      rows.push({ label: "Specialisme: " + spec, custom: specialtyCoverageForRow(spec, specialtyPlan, date) });
     });
     rows.push({ label: "Weekendwissel (AT/B/C3 ↔ W*)", custom: weekend ? weekendClusterCheck(date) : null });
     return rows;
@@ -2749,6 +2779,13 @@
         if(r.custom !== undefined){
           if(!r.custom || r.custom.status === "na"){
             html += '<td class="' + weekendCls.trim() + '"><span class="cov-na" title="' + escapeHtml(r.custom ? r.custom.text : "") + '">—</span></td>';
+          } else if(r.custom.detail){
+            // Rijke inhoud (bv. Specialisme: wie dekt welke zaal) → het eigen smart-tip-kaartje i.p.v.
+            // een effen title-tooltip. data-tip is URI-encoded zodat een apostrof in een naam (bv.
+            // "D'Hondt") de HTML-attribuutwaarde niet kan breken.
+            var tipCls = r.custom.status === "ok" ? "cov-ok" : (r.custom.status === "soft" ? "cov-soft" : "cov-short");
+            var tipSymbol = r.custom.status === "warn" ? "!" : "✓";
+            html += '<td class="' + weekendCls.trim() + '"><span class="' + tipCls + ' has-tip" tabindex="0" role="button" aria-label="' + escapeHtml(r.custom.text) + '" data-tip="' + encodeURIComponent(JSON.stringify(r.custom.detail)) + '">' + tipSymbol + '</span></td>';
           } else if(r.custom.status === "ok"){
             html += '<td class="' + weekendCls.trim() + '"><span class="cov-ok" title="' + escapeHtml(r.custom.text) + '">✓</span></td>';
           } else if(r.custom.status === "soft"){
@@ -4422,6 +4459,86 @@
   // eerste 3 om de sticky-stack/-16px-padding-fragiliteit hierboven, mr-grid-wrap omdat enkel
   // hoogte-aanpassing hier zinvol is (geen breedte) — die 4 houden native resize:vertical.
   ["room-template-wrap", "mr-roomneeds-wrap"].forEach(makeFullyResizable);
+
+  // ---------- SMART-TIP: gestileerd infokaartje i.p.v. de effen browser-tooltip ----------
+  // Eén gedeeld kaartje, hergebruikt voor elk element met een data-tip-attribuut (momenteel enkel de
+  // Specialisme-rijen in Dekking per dag). Werkt op muis (hover), toetsenbord (focus) én tik/klik
+  // (voor tablet/telefoon, waar "hover" niet bestaat) — daarom ook tabindex="0" + role="button" op
+  // de trigger. position:fixed zodat het kaartje nooit afgesneden wordt door de overflow:auto van de
+  // dekkingstabel; JS berekent zelf een positie die binnen het scherm blijft.
+  var smartTip = document.createElement("div");
+  smartTip.className = "smart-tip";
+  smartTip.hidden = true;
+  smartTip.setAttribute("role", "tooltip");
+  document.body.appendChild(smartTip);
+  var smartTipPinned = false; // "vastgezet" na een tik/klik, tot een volgende tik ergens anders
+
+  function renderSmartTipContent(detail){
+    var html = '<div class="smart-tip-title">' + escapeHtml(detail.title) + '</div>';
+    if(detail.summary) html += '<div class="smart-tip-summary">' + escapeHtml(detail.summary) + '</div>';
+    html += '<div class="smart-tip-lines">' + detail.lines.map(function(l){
+      var cls = l.status === "ok" ? "cov-ok" : (l.status === "soft" ? "cov-soft" : "cov-short");
+      var mark = l.status === "short" ? "!" : "✓";
+      return '<div class="smart-tip-line"><span class="' + cls + '">' + mark + '</span><span class="smart-tip-main">' + escapeHtml(l.main) + '</span>' +
+        (l.note ? '<span class="smart-tip-note">' + escapeHtml(l.note) + '</span>' : '') + '</div>';
+    }).join("") + '</div>';
+    smartTip.innerHTML = html;
+  }
+
+  function positionSmartTip(anchor){
+    var r = anchor.getBoundingClientRect();
+    smartTip.hidden = false;
+    var tw = smartTip.offsetWidth, th = smartTip.offsetHeight;
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - tw - 8);
+    var top = r.bottom + 8;
+    if(top + th > window.innerHeight - 8) top = Math.max(8, r.top - th - 8);
+    smartTip.style.left = left + "px";
+    smartTip.style.top = top + "px";
+  }
+
+  function showSmartTip(anchor){
+    var raw = anchor.dataset.tip;
+    if(!raw) return;
+    var detail;
+    try{ detail = JSON.parse(decodeURIComponent(raw)); }catch(e){ return; }
+    renderSmartTipContent(detail);
+    positionSmartTip(anchor);
+  }
+  function hideSmartTip(){
+    if(smartTipPinned) return;
+    smartTip.hidden = true;
+  }
+
+  document.addEventListener("pointerover", function(e){
+    if(e.pointerType === "touch") return; // tik wordt hieronder apart afgehandeld (via click)
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t) showSmartTip(t);
+  });
+  document.addEventListener("pointerout", function(e){
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t && (!e.relatedTarget || !t.contains(e.relatedTarget))) hideSmartTip();
+  });
+  document.addEventListener("focusin", function(e){
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t) showSmartTip(t);
+  });
+  document.addEventListener("focusout", function(e){
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t) hideSmartTip();
+  });
+  // Tik/klik: vasthouden tot een volgende tik (ergens anders sluit het, nog eens op hetzelfde teken
+  // sluit het ook) — nodig op een tablet/telefoon, waar er geen "hover" bestaat.
+  document.addEventListener("click", function(e){
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t){
+      if(smartTipPinned && !smartTip.hidden){ smartTipPinned = false; smartTip.hidden = true; }
+      else { showSmartTip(t); smartTipPinned = true; }
+      return;
+    }
+    if(smartTipPinned){ smartTipPinned = false; smartTip.hidden = true; }
+  });
+  window.addEventListener("scroll", function(){ if(!smartTipPinned) smartTip.hidden = true; }, true);
+  window.addEventListener("resize", function(){ if(!smartTipPinned) smartTip.hidden = true; });
 
   // ---------- DAG-/NACHTMODUS ----------
   // De kleuren hangen aan CSS-variabelen die per data-theme op <html> wisselen. Zonder keuze volgt
