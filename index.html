@@ -2709,7 +2709,7 @@
         });
       } else if(e.persons.some(function(a){ return !a.exact; })){
         fallback++;
-        var names = e.persons.map(function(a){ return a.person.nom + (a.exact ? "" : " (repli)"); }).join(" + ");
+        var names = e.persons.map(function(a){ return a.person.nom + (a.exact ? "" : " (ander specialisme)"); }).join(" + ");
         lines.push({ status: "soft", main: room + " → " + names, note: "niet allebei " + spec + " — 1 ervan is een ander specialisme uit dezelfde groep" });
       } else {
         lines.push({ status: "ok", main: room + " → " + e.persons.map(function(a){ return a.person.nom; }).join(" + "), note: null });
