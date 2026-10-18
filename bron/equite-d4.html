@@ -2727,7 +2727,7 @@
       rows.push({ label: "B", required: nCount > 0 ? 2 : 3, actual: countCodeForDay(date, "B") + countCodeForDay(date, "BW") });
     }
     rows.push({ label: "AT", required: 1, actual: countCodeForDay(date, "AT"), exact: true });
-    rows.push({ label: "TZ", required: weekend ? null : (rooms > 0 && rooms <= 3 ? 1 : 2), actual: countCodeForDay(date, "TZ") });
+    rows.push({ label: "TZ", required: weekend ? null : (rooms > 0 && rooms <= 3 ? 1 : 2), actual: countCodeForDay(date, "TZ") + countCodeForDay(date, "TZW") });
     if(!isWeekendNight(date)){
       rows.push({ label: "C4 (nacht ma-do)", required: 1, actual: countCodeForDay(date, "C4"), exact: true });
       rows.push({ label: "C3 (nacht vr-zo)", required: null, actual: countCodeForDay(date, "C3") });
